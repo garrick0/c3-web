@@ -52,3 +52,4 @@ export function getProjectName(path: string): string {
   return parts[parts.length - 1] || 'Unknown';
 }
 
+

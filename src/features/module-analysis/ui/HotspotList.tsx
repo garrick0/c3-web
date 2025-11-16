@@ -103,3 +103,4 @@ export function HotspotList({ modules }: HotspotListProps) {
   );
 }
 
+

@@ -24,8 +24,9 @@ export function AnalysisHistoryPage() {
   if (!data) return null;
 
   const filteredAnalyses = data.analyses.filter((analysis) =>
-    analysis.projectName.toLowerCase().includes(search.toLowerCase()) ||
-    analysis.rootPath.toLowerCase().includes(search.toLowerCase())
+    analysis.projectName?.toLowerCase().includes(search.toLowerCase()) ||
+    analysis.rootPath?.toLowerCase().includes(search.toLowerCase()) ||
+    analysis.id?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -79,11 +80,17 @@ export function AnalysisHistoryPage() {
                       {formatDate(analysis.timestamp)}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <div className="font-medium text-gray-900">{analysis.projectName}</div>
-                      <div className="text-gray-500 text-xs">{analysis.rootPath}</div>
+                      <div className="font-medium text-gray-900">
+                        {analysis.projectName || analysis.config?.rootPath?.split('/').pop() || 'Unknown Project'}
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {analysis.rootPath || analysis.config?.rootPath || 'N/A'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant="info">{analysis.moduleCount}</Badge>
+                      <Badge variant="info">
+                        {analysis.moduleCount || analysis.projection?.metadata?.totalModules || 0}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button

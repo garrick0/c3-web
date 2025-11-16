@@ -12,7 +12,12 @@ import { ErrorBoundary } from '../shared/ui/ErrorBoundary/ErrorBoundary';
 export function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <Layout>
           <Routes>
             <Route path="/" element={<Navigate to="/analysis" replace />} />

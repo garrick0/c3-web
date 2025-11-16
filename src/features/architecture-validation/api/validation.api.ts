@@ -9,3 +9,4 @@ export const validationApi = {
   validate: (config: ValidationConfig) => apiClient.validateArchitecture(config),
 };
 
+

@@ -28,7 +28,7 @@ export class ApiError extends Error {
 }
 
 class ApiClient {
-  private baseURL = ENDPOINTS.HEALTH.replace('/health', '');
+  private baseURL = '';
 
   private async request<T>(
     endpoint: string,
@@ -76,17 +76,101 @@ class ApiClient {
    * Analyze a codebase
    */
   async analyzeModules(config: AnalysisConfig): Promise<ApiResponse<Analysis>> {
-    return this.request(ENDPOINTS.ANALYZE_MODULES, {
+    const response = await this.request<any>(ENDPOINTS.ANALYZE_MODULES, {
       method: 'POST',
       body: JSON.stringify(config),
     });
+
+    // Transform backend response to match frontend expectations
+    const transformModule = (module: any) => ({
+      id: module.id,
+      name: module.name,
+      path: module.path,
+      files: module.files || [],
+      dependencies: module.dependencies || [],
+      dependents: module.dependents || [],
+      metrics: {
+        fileCount: module.fileCount || module.metrics?.fileCount || 0,
+        dependencyCount: module.dependencyCount || module.metrics?.dependencyCount || 0,
+        dependentCount: module.dependentCount || module.metrics?.dependentCount || 0,
+        complexity: module.metrics?.complexity || 0,
+        coupling: module.metrics?.coupling || 0,
+      },
+    });
+
+    return {
+      ...response,
+      data: {
+        id: response.data.analysisId,
+        timestamp: response.data.analyzedAt || new Date().toISOString(),
+        config: {
+          rootPath: config.rootPath,
+          aggregationLevel: config.config.aggregationLevel,
+        },
+        projection: {
+          modules: (response.data.modules || []).map(transformModule),
+          metadata: {
+            totalModules: response.data.summary?.totalModules || 0,
+            totalFiles: response.data.summary?.totalFiles || 0,
+            totalDependencies: response.data.summary?.totalDependencies || 0,
+            averageCoupling: response.data.summary?.averageCoupling || 0,
+            maxDepth: response.data.summary?.maxDepth || 0,
+            timestamp: response.data.analyzedAt || new Date().toISOString(),
+          },
+        },
+      },
+    };
   }
 
   /**
    * Get a specific analysis by ID
    */
   async getAnalysis(id: string): Promise<ApiResponse<Analysis>> {
-    return this.request(ENDPOINTS.GET_ANALYSIS(id));
+    const response = await this.request<any>(ENDPOINTS.GET_ANALYSIS(id));
+
+    // Transform backend response to match frontend expectations
+    if (response.data && !response.data.projection) {
+      const transformModule = (module: any) => ({
+        id: module.id,
+        name: module.name,
+        path: module.path,
+        files: module.files || [],
+        dependencies: module.dependencies || [],
+        dependents: module.dependents || [],
+        metrics: {
+          fileCount: module.fileCount || module.metrics?.fileCount || 0,
+          dependencyCount: module.dependencyCount || module.metrics?.dependencyCount || 0,
+          dependentCount: module.dependentCount || module.metrics?.dependentCount || 0,
+          complexity: module.metrics?.complexity || 0,
+          coupling: module.metrics?.coupling || 0,
+        },
+      });
+
+      return {
+        ...response,
+        data: {
+          id: response.data.analysisId || id,
+          timestamp: response.data.analyzedAt || new Date().toISOString(),
+          config: response.data.config || {
+            rootPath: response.data.rootPath || '',
+            aggregationLevel: 'top-level' as const,
+          },
+          projection: {
+            modules: (response.data.modules || []).map(transformModule),
+            metadata: {
+              totalModules: response.data.summary?.totalModules || 0,
+              totalFiles: response.data.summary?.totalFiles || 0,
+              totalDependencies: response.data.summary?.totalDependencies || 0,
+              averageCoupling: response.data.summary?.averageCoupling || 0,
+              maxDepth: response.data.summary?.maxDepth || 0,
+              timestamp: response.data.analyzedAt || new Date().toISOString(),
+            },
+          },
+        },
+      };
+    }
+
+    return response;
   }
 
   /**
@@ -94,7 +178,30 @@ class ApiClient {
    */
   async listAnalyses(params?: ListParams): Promise<ApiResponse<AnalysisList>> {
     const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-    return this.request(`${ENDPOINTS.LIST_ANALYSES}${query}`);
+    const response = await this.request<any>(`${ENDPOINTS.LIST_ANALYSES}${query}`);
+
+    // Transform backend response to match frontend expectations
+    if (response.data?.analyses) {
+      return {
+        ...response,
+        data: {
+          analyses: response.data.analyses.map((analysis: any) => ({
+            id: analysis.analysisId || analysis.id,
+            timestamp: analysis.createdAt || analysis.timestamp || new Date().toISOString(),
+            projectName: analysis.rootPath?.split('/').filter(Boolean).pop() || 'Unknown',
+            rootPath: analysis.rootPath || '',
+            moduleCount: analysis.moduleCount || 0,
+            config: {
+              rootPath: analysis.rootPath || '',
+              aggregationLevel: 'top-level' as const,
+            },
+          })),
+          total: response.data.total || response.data.analyses.length,
+        },
+      };
+    }
+
+    return response;
   }
 
   /**
@@ -132,7 +239,7 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const response = await fetch(`${ENDPOINTS.HEALTH.replace('/health', '')}${endpoint}`, {
+  const response = await fetch(endpoint, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
