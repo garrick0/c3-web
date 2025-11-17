@@ -197,6 +197,8 @@ class ApiClient {
             },
           })),
           total: response.data.total || response.data.analyses.length,
+          page: response.data.pagination?.offset ? Math.floor(response.data.pagination.offset / (response.data.pagination.limit || 50)) + 1 : 1,
+          pageSize: response.data.pagination?.limit || 50,
         },
       };
     }

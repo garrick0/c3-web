@@ -142,6 +142,15 @@ export interface AnalysisHistoryItem {
   timestamp: string;
   moduleCount: number;
   score?: number;
+  config?: {
+    rootPath: string;
+    aggregationLevel: string;
+  };
+  projection?: {
+    metadata?: {
+      totalModules: number;
+    };
+  };
 }
 
 export interface ListParams {
